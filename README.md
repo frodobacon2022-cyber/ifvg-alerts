@@ -1,76 +1,118 @@
-# IFVG Early Warning System
+# IFVG Command Center — Full Dashboard (frontend complete)
 
-Full pipeline: TradingView chart -> Pine Script detects a forming IFVG setup ->
-webhook -> Telegram message to your phone, before the setup fully confirms.
-Entirely free — no Twilio, no trial credits, no per-message cost.
+This is the finalized dashboard: every section we planned is built and wired
+to real data, styled as a dark, mouse-reactive HUD. It's one web app — same
+URL on your phone and your computer, same live data on both, because
+everything lives in one database on the server.
 
-## Files
+## What's live now
 
-- `ifvg_early_warning.pine` — the indicator/alert logic. Paste into TradingView's
-  Pine Editor, add to your chart, then create an alert off of it.
-- `webhook_server.py` — small server that receives the TradingView alert and
-  sends you a Telegram message.
-- `requirements.txt` / `Procfile` — for deploying the server to Render (or
-  similar) for free.
+- **Pre-Market Briefing** — a composite view: today's calendar events, live
+  setups, account health, and risk used, all in one glance.
+- **Live Setup Tracker** — latest alert per symbol/timeframe, color-coded by
+  how many of the 5 conditions are met. Auto-refreshes every 30s.
+- **Active Trade Management** — check off your 5 conditions to unlock a
+  calculator: breakeven, risk/reward, and exact contracts to take based on
+  your dollar risk and stop distance.
+- **Trade Journal** — manual entry or bulk import from a Tradovate CSV
+  export (fills get paired into round-turn trades automatically, duplicates
+  are skipped on re-import).
+- **Alert History** — every alert ever sent, with a "did you take it?"
+  tracker.
+- **Multi-Account Overview** — add every account (Apex now, more later),
+  see balance, distance to drawdown floor, distance to profit target, and
+  combined totals across everything. Includes a daily/weekly risk cap
+  tracker fed by the risk amounts you log per trade.
+- **Economic Calendar & News** — log red/orange/yellow events manually for
+  now (see limitations below), plus a curated list of fast-breaking news
+  accounts (Walter Bloomberg, RANsquawk, etc.) as a starting point.
+- **Psychology & Rule Compliance** — win rate on trades where you followed
+  all 5 conditions vs. trades where you didn't, so you can see whether
+  losses come from bad setups or from skipping your own rules.
+- **Goals & Milestones** — track progress toward an account's profit
+  target, or any custom goal, with a progress bar.
+- **Stats** — win rate and P/L, overall and by session.
+- **Correlation Matrix & Backtesting** — intentionally left as placeholder
+  tabs for now. Both genuinely need a live market data feed / historical
+  data source, which is real backend work, not just UI. That's next.
 
-## What the Pine Script checks
+## What's NOT automated yet (the "backend phase")
 
-1. **HTF trend + liquidity target** — daily/4H structure direction, is there
-   a clear high/low to target.
-2. **Liquidity sweep** — price wicks past a prior swing point and closes back
-   inside it.
-3. **Old FVG alignment** — does that sweep level line up with a fair value
-   gap from further back on the chart.
-4. **Killzone timing** — London, NY AM, or Asian session windows.
-5. **Clean move (low chop)** — strong-bodied candle + directional range vs
-   ATR, matching Dodgy's "no chop" grading criteria.
-6. **SMT divergence** — compares against a correlated symbol (defaults to
-   ES for NQ) to confirm smart-money divergence.
+- **Economic calendar events are manual entry.** A real automated feed
+  (scraping or an API for Forex Factory-style red/orange/yellow events)
+  is backend work we haven't built.
+- **News links are a static curated list**, not a live feed pulling actual
+  headlines.
+- **Correlation Matrix and Backtesting** need a live/historical price data
+  source — not built yet, tabs are placeholders explaining why.
+- **Tradovate is CSV import only**, not live sync — see the note further
+  down on why, and what a live sync would take.
+- **No login yet**, per your request — anyone with the URL can see and
+  edit everything. Worth adding once this is more than just you using it.
 
-The alert fires when the setup is **forming** — sweep + trend + FVG + session +
-chop + SMT all present — but *before* the candle closes and fully confirms.
-That's the buffer you asked for: time to pull up the chart, watch the final
-confirmation candle, and decide instead of getting told after the move's gone.
+## Design notes
 
-## Setup steps
+Dark navy background with a cyan/green glow that follows your cursor
+across the whole page, panel borders that light up on hover, corner-bracket
+framing on panels (HUD-style), and a live pulsing status indicator — built
+to feel like an instrument panel, not a form.
 
-### 1. Pine Script
-- Open TradingView -> Pine Editor -> paste `ifvg_early_warning.pine` -> Add to Chart.
-- Set the "Correlated Symbol" input to whatever matches what you trade (ES for
-  NQ, QQQ for SPY, etc).
-- Right-click the chart -> Add Alert -> Condition: this indicator -> choose
-  "Bullish IFVG Setup Forming" or "Bearish IFVG Setup Forming".
-- In the alert's Notifications tab, paste your webhook URL (see step 3).
+## Deploying this (same Render service as before)
 
-### 2. Telegram bot (free, no limits)
-- Open Telegram, message @BotFather, send `/newbot`, follow the prompts.
-- BotFather gives you a token like `123456789:ABCdefGhIJKlmNoPQRstuVwxYZ`.
-- Search for your new bot's username and send it any message (e.g. "hi").
-- Visit `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` in a browser —
-  you'll see a `"chat":{"id": ...}` field. That number is your chat ID.
+1. Replace the contents of your `ifvg-alerts` GitHub repo with everything
+   in this project: `app.py`, `db.py`, `tradovate_import.py`,
+   `requirements.txt`, `Procfile`, `templates/dashboard.html`,
+   `static/style.css`, `static/script.js`.
+2. Commit and push — Render auto-redeploys (or trigger manually).
+3. Start Command should be `gunicorn app:app`.
+4. Your `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` env vars, and your
+   TradingView webhook URL, all stay exactly the same.
+5. Open your Render URL in a browser on your phone or computer — that's
+   the dashboard.
 
-### 3. Deploy the webhook server (free)
-- Push `webhook_server.py`, `requirements.txt`, and `Procfile` to a small
-  GitHub repo.
-- Create a free Web Service on render.com pointing at that repo.
-- Set environment variables: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
-- Once deployed, your webhook URL is `https://<your-app>.onrender.com/webhook`
-  — paste that into the TradingView alert.
+## Automatic trade logging (Tradovate CSV import)
 
-## Known limitations / next steps to refine
+In the Trade Journal tab, click **Import from Tradovate CSV**:
 
-- **Liquidity target logic is simplified.** Right now it just checks the last
-  couple of HTF highs/lows rather than tracking truly unmitigated swing
-  points. Worth tightening once you're testing live.
-- **Chop filter is a proxy**, not a direct replica of Dodgy's visual grading —
-  it's a reasonable mechanical stand-in but won't catch every nuance a human
-  eye would.
-- **No probability score** — intentionally left out per your call, since
-  there isn't enough trade history yet to make one meaningful. Worth
-  revisiting once you're logging enough trades through this system.
-- **Free hosting tiers can spin down when idle** and take a few seconds to
-  wake up on the next webhook — shouldn't matter for this use case, but worth
-  knowing.
-- This has **not been backtested or forward-tested** — treat every alert as a
-  "go look at the chart" prompt, not a trade signal, until you've validated
-  it against real setups.
+1. In Tradovate (web or desktop), go to **Reports → Orders** (or **Fills**
+   — not Performance), pick your date range, and export the CSV.
+2. Upload it in the Trade Journal tab.
+3. It reports how many trades were imported and skips anything already
+   imported before, so re-exporting an overlapping date range is safe.
+
+**Honest limitations of this importer:**
+
+- Tradovate's export is one row per *fill*; this pairs entry/exit fills
+  into trades via FIFO matching, which is correct in the vast majority of
+  cases but worth spot-checking the first few times against your statement.
+- P/L uses standard point values for common futures contracts (ES, NQ, MES,
+  MNQ, GC, CL, etc.). Anything not on that list gets flagged with P/L left
+  blank for you to fill in.
+- Session (London/NY AM/Asian) is a rough hour-based guess from the fill
+  timestamp, not exact killzone matching.
+
+**Why not live Tradovate sync?** Tradovate's official paid API (the "API
+Access Add-on," $25/month) requires a live funded account with a $1,000+
+balance, and explicitly excludes prop firm and evaluation accounts — so it
+won't work for your Apex account. Third-party tools like TradeLog claim
+real-time sync with Apex/Tradeify accounts using a login-based approach
+instead of the paid add-on. That's the next thing worth testing, but it's
+undocumented for prop accounts and needs to be verified with your real
+login before we build on it.
+
+## One important note on the database
+
+This uses SQLite (`dashboard.db`), a simple file-based database — great for
+building fast at zero cost, but **Render's free tier has an ephemeral
+filesystem**, meaning a restart or redeploy can wipe that file. Fine while
+testing, but before trusting this with real trade history, we should move
+to Render's free PostgreSQL, which doesn't get wiped. Quick swap whenever
+you're ready — just say the word.
+
+## Local testing
+
+```
+pip install -r requirements.txt
+python app.py
+```
+Then open `http://localhost:5000` in your browser.

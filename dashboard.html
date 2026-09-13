@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IFVG // Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ambient cursor-follow glow layer -->
+<div class="glow-field" id="glow-field"></div>
+<div class="grid-overlay"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">IFVG</span>
+    <span class="brand-slash">//</span>
+    <span class="brand-sub">Command Center</span>
+  </div>
+  <div class="status-pill" id="connection-status">
+    <span class="dot"></span> systems live
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="briefing">Briefing</button>
+  <button class="tab" data-tab="tracker">Setup Tracker</button>
+  <button class="tab" data-tab="manage">Trade Mgmt</button>
+  <button class="tab" data-tab="journal">Journal</button>
+  <button class="tab" data-tab="history">Alerts</button>
+  <button class="tab" data-tab="accounts">Accounts</button>
+  <button class="tab" data-tab="calendar">Calendar / News</button>
+  <button class="tab" data-tab="psychology">Psychology</button>
+  <button class="tab" data-tab="goals">Goals</button>
+  <button class="tab" data-tab="stats">Stats</button>
+  <button class="tab" data-tab="soon">Correlation / Backtest</button>
+</nav>
+
+<main>
+
+  <!-- PRE-MARKET BRIEFING -->
+  <section class="panel glow-card" id="tab-briefing">
+    <div class="panel-head">
+      <h2>Pre-Market Briefing</h2>
+      <p class="panel-note">Everything to check before the session starts, in one place.</p>
+    </div>
+
+    <h3 class="sub-head">Today's high-impact events</h3>
+    <div id="briefing-events" class="mini-list"><div class="empty-state">No events logged for today yet — add them in the Calendar tab.</div></div>
+
+    <h3 class="sub-head">Live setups</h3>
+    <div id="briefing-tracker" class="tracker-grid"><div class="empty-state">No alerts yet.</div></div>
+
+    <h3 class="sub-head">Account health</h3>
+    <div id="briefing-accounts" class="account-grid"><div class="empty-state">No accounts added yet — add one in the Accounts tab.</div></div>
+
+    <h3 class="sub-head">Risk used</h3>
+    <div id="briefing-risk" class="stat-row"></div>
+  </section>
+
+  <!-- SETUP TRACKER -->
+  <section class="panel hidden glow-card" id="tab-tracker">
+    <div class="panel-head">
+      <h2>Live Setup Tracker</h2>
+      <p class="panel-note">Latest condition state per symbol / timeframe, from incoming alerts.</p>
+    </div>
+    <div id="tracker-grid" class="tracker-grid">
+      <div class="empty-state">No alerts received yet. Once your TradingView alert fires, symbols will appear here.</div>
+    </div>
+  </section>
+
+  <!-- ACTIVE TRADE MANAGEMENT -->
+  <section class="panel hidden glow-card" id="tab-manage">
+    <div class="panel-head">
+      <h2>Active Trade Management</h2>
+      <p class="panel-note">Confirm your conditions, then get stop, target, breakeven, and position size.</p>
+    </div>
+
+    <div class="conditions-block">
+      <span class="conditions-label">Confirm conditions present before sizing this trade</span>
+      <div class="conditions-grid">
+        <label class="check"><input type="checkbox" class="gate-check"> HTF trend + target</label>
+        <label class="check"><input type="checkbox" class="gate-check"> Liquidity sweep + FVG</label>
+        <label class="check"><input type="checkbox" class="gate-check"> Killzone timing</label>
+        <label class="check"><input type="checkbox" class="gate-check"> SMT divergence</label>
+        <label class="check"><input type="checkbox" class="gate-check"> Clean / low chop</label>
+      </div>
+    </div>
+
+    <div class="calc-grid" id="calc-inputs-wrap">
+      <label>Direction
+        <select id="calc-direction">
+          <option value="long">Long</option>
+          <option value="short">Short</option>
+        </select>
+      </label>
+      <label>Entry price <input type="number" step="any" id="calc-entry"></label>
+      <label>Stop price <input type="number" step="any" id="calc-stop"></label>
+      <label>Target price <input type="number" step="any" id="calc-target"></label>
+      <label>$ per point (contract value) <input type="number" step="any" id="calc-point-value" placeholder="e.g. 20 for NQ, 5 for MES"></label>
+      <label>Amount willing to risk ($) <input type="number" step="any" id="calc-risk-dollars"></label>
+    </div>
+
+    <div class="calc-results hidden" id="calc-results">
+      <div class="stat-row">
+        <div class="stat-card"><span class="stat-label">Breakeven</span><span class="stat-value" id="calc-breakeven">—</span></div>
+        <div class="stat-card"><span class="stat-label">Risk / Reward</span><span class="stat-value" id="calc-rr">—</span></div>
+        <div class="stat-card"><span class="stat-label">Contracts to take</span><span class="stat-value" id="calc-contracts">—</span></div>
+      </div>
+    </div>
+    <div class="empty-state" id="calc-gate-msg">Check all 5 conditions above to unlock the sizing calculator.</div>
+  </section>
+
+  <!-- TRADE JOURNAL -->
+  <section class="panel hidden glow-card" id="tab-journal">
+    <div class="panel-head">
+      <h2>Trade Journal</h2>
+      <p class="panel-note">Log every trade taken, and which conditions were present.</p>
+      <button class="btn-primary" id="new-trade-btn">+ Log trade manually</button>
+      <button class="btn-secondary" id="import-btn">Import from Tradovate CSV</button>
+      <input type="file" id="import-file-input" accept=".csv" style="display:none">
+    </div>
+    <div id="import-status"></div>
+    <div class="table-wrap">
+      <table class="data-table" id="trades-table">
+        <thead>
+          <tr>
+            <th>Date</th><th>Symbol</th><th>Dir</th><th>Session</th><th>Entry</th>
+            <th>Stop</th><th>Target</th><th>Exit</th><th>Contracts</th><th>P/L</th>
+            <th>Conditions</th><th>Result</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="trades-tbody">
+          <tr><td colspan="13" class="empty-state">No trades logged yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ALERT HISTORY -->
+  <section class="panel hidden glow-card" id="tab-history">
+    <div class="panel-head">
+      <h2>Alert History</h2>
+      <p class="panel-note">Every alert the system has sent. Mark whether you took it.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="alerts-table">
+        <thead>
+          <tr>
+            <th>Time</th><th>Symbol</th><th>TF</th><th>Dir</th><th>Conditions met</th><th>Taken?</th><th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="alerts-tbody">
+          <tr><td colspan="7" class="empty-state">No alerts logged yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ACCOUNTS -->
+  <section class="panel hidden glow-card" id="tab-accounts">
+    <div class="panel-head">
+      <h2>Multi-Account Overview</h2>
+      <p class="panel-note">Every account, status, and how close it is to target or floor.</p>
+      <button class="btn-primary" id="new-account-btn">+ Add account</button>
+    </div>
+    <div id="accounts-totals" class="stat-row"></div>
+    <div id="accounts-grid" class="account-grid">
+      <div class="empty-state">No accounts added yet.</div>
+    </div>
+
+    <h3 class="sub-head">Risk caps</h3>
+    <div class="calc-grid">
+      <label>Daily risk cap ($) <input type="number" step="any" id="daily-risk-cap"></label>
+      <label>Weekly risk cap ($) <input type="number" step="any" id="weekly-risk-cap"></label>
+      <label class="save-cap-label"><button class="btn-secondary" id="save-caps-btn">Save caps</button></label>
+    </div>
+    <div id="risk-status" class="stat-row"></div>
+  </section>
+
+  <!-- CALENDAR / NEWS -->
+  <section class="panel hidden glow-card" id="tab-calendar">
+    <div class="panel-head">
+      <h2>Economic Calendar &amp; News</h2>
+      <p class="panel-note">Red/orange move price fastest. Yellow shown but de-emphasized.</p>
+      <button class="btn-primary" id="new-event-btn">+ Add event</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="calendar-table">
+        <thead><tr><th>Date</th><th>Time</th><th>Event</th><th>Impact</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="calendar-tbody"><tr><td colspan="6" class="empty-state">No events added yet.</td></tr></tbody>
+      </table>
+    </div>
+
+    <h3 class="sub-head">Fast-breaking news sources</h3>
+    <div class="news-links" id="news-links"></div>
+  </section>
+
+  <!-- PSYCHOLOGY -->
+  <section class="panel hidden glow-card" id="tab-psychology">
+    <div class="panel-head">
+      <h2>Psychology &amp; Rule Compliance</h2>
+      <p class="panel-note">Are your losses coming from bad setups, or from breaking your own rules?</p>
+    </div>
+    <div id="psych-stats" class="stat-row"></div>
+    <h3 class="sub-head">Full compliance (5/5 conditions) vs not</h3>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th></th><th>Trades</th><th>Win rate</th></tr></thead>
+        <tbody id="psych-compliance-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- GOALS -->
+  <section class="panel hidden glow-card" id="tab-goals">
+    <div class="panel-head">
+      <h2>Goals &amp; Milestones</h2>
+      <p class="panel-note">Track progress toward each account's target, or your own income goals.</p>
+      <button class="btn-primary" id="new-goal-btn">+ Add goal</button>
+    </div>
+    <div id="goals-list" class="goals-list"><div class="empty-state">No goals set yet.</div></div>
+  </section>
+
+  <!-- STATS -->
+  <section class="panel hidden glow-card" id="tab-stats">
+    <div class="panel-head">
+      <h2>Performance</h2>
+    </div>
+    <div class="stat-row" id="stat-summary">
+      <div class="stat-card"><span class="stat-label">Total trades</span><span class="stat-value" id="stat-total">—</span></div>
+      <div class="stat-card"><span class="stat-label">Win rate</span><span class="stat-value" id="stat-winrate">—</span></div>
+      <div class="stat-card"><span class="stat-label">Total P/L</span><span class="stat-value" id="stat-pnl">—</span></div>
+    </div>
+    <h3 class="sub-head">By session</h3>
+    <div class="table-wrap">
+      <table class="data-table" id="session-table">
+        <thead><tr><th>Session</th><th>Wins</th><th>Losses</th><th>Win rate</th><th>P/L</th></tr></thead>
+        <tbody id="session-tbody"><tr><td colspan="5" class="empty-state">No data yet.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- COMING SOON: CORRELATION + BACKTEST -->
+  <section class="panel hidden glow-card" id="tab-soon">
+    <div class="panel-head">
+      <h2>Correlation Matrix &amp; Backtesting</h2>
+      <p class="panel-note">These need a live market data feed and a historical data source — that's backend-phase work.</p>
+    </div>
+    <div class="soon-block">
+      <div class="soon-card">
+        <h3>Correlation Matrix</h3>
+        <p>A live panel showing how correlated pairs (e.g. NQ/ES) are moving relative to each other, to spot SMT divergence at a glance instead of flipping between charts.</p>
+        <span class="soon-tag">Needs a live price feed</span>
+      </div>
+      <div class="soon-card">
+        <h3>AI Backtesting</h3>
+        <p>Run your 5-condition IFVG strategy against historical data, broken down by session and timeframe, with full stats.</p>
+        <span class="soon-tag">Needs historical data + a simulation engine</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- NEW TRADE MODAL -->
+<div class="modal-backdrop hidden" id="trade-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Log trade</h3>
+      <button class="modal-close" id="modal-close">&times;</button>
+    </div>
+    <form id="trade-form">
+      <div class="form-grid">
+        <label>Symbol <input type="text" name="symbol" placeholder="NQ1!" required></label>
+        <label>Direction
+          <select name="direction" required>
+            <option value="long">Long</option>
+            <option value="short">Short</option>
+          </select>
+        </label>
+        <label>Session
+          <select name="session">
+            <option value="London">London</option>
+            <option value="NY AM">NY AM</option>
+            <option value="Asian">Asian</option>
+          </select>
+        </label>
+        <label>Timeframe <input type="text" name="timeframe" placeholder="15m"></label>
+        <label>Entry price <input type="number" step="any" name="entry_price"></label>
+        <label>Stop price <input type="number" step="any" name="stop_price"></label>
+        <label>Target price <input type="number" step="any" name="target_price"></label>
+        <label>Exit price <input type="number" step="any" name="exit_price"></label>
+        <label>Contracts <input type="number" step="any" name="contracts"></label>
+        <label>Risk amount ($) <input type="number" step="any" name="risk_amount"></label>
+        <label>P/L ($) <input type="number" step="any" name="pnl"></label>
+        <label>Account <input type="text" name="account_name" placeholder="Apex #1"></label>
+        <label>Result
+          <select name="result">
+            <option value="">Pending</option>
+            <option value="win">Win</option>
+            <option value="loss">Loss</option>
+            <option value="breakeven">Breakeven</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="conditions-block">
+        <span class="conditions-label">Conditions present</span>
+        <div class="conditions-grid">
+          <label class="check"><input type="checkbox" name="cond_htf_trend"> HTF trend + target</label>
+          <label class="check"><input type="checkbox" name="cond_liquidity_sweep"> Liquidity sweep + FVG</label>
+          <label class="check"><input type="checkbox" name="cond_killzone"> Killzone timing</label>
+          <label class="check"><input type="checkbox" name="cond_smt_divergence"> SMT divergence</label>
+          <label class="check"><input type="checkbox" name="cond_clean_move"> Clean / low chop</label>
+        </div>
+      </div>
+
+      <label class="full">Notes <textarea name="notes" rows="3" placeholder="Why'd you take it / skip it?"></textarea></label>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" id="cancel-trade">Cancel</button>
+        <button type="submit" class="btn-primary">Save trade</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- NEW ACCOUNT MODAL -->
+<div class="modal-backdrop hidden" id="account-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Add account</h3>
+      <button class="modal-close" id="account-modal-close">&times;</button>
+    </div>
+    <form id="account-form">
+      <div class="form-grid">
+        <label>Account name <input type="text" name="name" placeholder="Apex #1" required></label>
+        <label>Firm <input type="text" name="firm" placeholder="Apex"></label>
+        <label>Account type <input type="text" name="account_type" placeholder="50k eval"></label>
+        <label>Starting balance ($) <input type="number" step="any" name="starting_balance"></label>
+        <label>Current balance ($) <input type="number" step="any" name="current_balance"></label>
+        <label>Profit target ($) <input type="number" step="any" name="profit_target"></label>
+        <label>Drawdown floor ($) <input type="number" step="any" name="max_drawdown"></label>
+        <label>Status
+          <select name="status">
+            <option value="active">Active</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="paused">Paused</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" id="cancel-account">Cancel</button>
+        <button type="submit" class="btn-primary">Save account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- NEW CALENDAR EVENT MODAL -->
+<div class="modal-backdrop hidden" id="event-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Add calendar event</h3>
+      <button class="modal-close" id="event-modal-close">&times;</button>
+    </div>
+    <form id="event-form">
+      <div class="form-grid">
+        <label>Date <input type="date" name="event_date" required></label>
+        <label>Time <input type="time" name="event_time"></label>
+        <label>Event <input type="text" name="title" placeholder="CPI" required></label>
+        <label>Impact
+          <select name="impact">
+            <option value="red">Red (high)</option>
+            <option value="orange">Orange (medium)</option>
+            <option value="yellow">Yellow (low)</option>
+          </select>
+        </label>
+      </div>
+      <label class="full">Notes <textarea name="notes" rows="2"></textarea></label>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" id="cancel-event">Cancel</button>
+        <button type="submit" class="btn-primary">Save event</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- NEW GOAL MODAL -->
+<div class="modal-backdrop hidden" id="goal-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Add goal</h3>
+      <button class="modal-close" id="goal-modal-close">&times;</button>
+    </div>
+    <form id="goal-form">
+      <div class="form-grid">
+        <label>Title <input type="text" name="title" placeholder="Pass Apex eval" required></label>
+        <label>Tie to account
+          <select name="account_id" id="goal-account-select">
+            <option value="">None (custom goal)</option>
+          </select>
+        </label>
+        <label>Starting value <input type="number" step="any" name="starting_value"></label>
+        <label>Target value <input type="number" step="any" name="target_value" required></label>
+        <label>Current value <input type="number" step="any" name="current_value"></label>
+        <label>Target date <input type="date" name="target_date"></label>
+      </div>
+      <label class="full">Notes <textarea name="notes" rows="2"></textarea></label>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" id="cancel-goal">Cancel</button>
+        <button type="submit" class="btn-primary">Save goal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
