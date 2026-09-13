@@ -182,7 +182,7 @@ main {
   max-width: 1150px;
 }
 
-.panel.hidden { display: none; }
+.panel.hidden, .tab-page.hidden { display: none; }
 
 .panel {
   position: relative;

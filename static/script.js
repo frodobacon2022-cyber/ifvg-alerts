@@ -39,27 +39,27 @@ document.addEventListener('mousemove', (e) => {
 // ============================================================
 const tabs = document.querySelectorAll('.tab');
 const panels = {
-  briefing: document.getElementById('tab-briefing'),
-  tracker: document.getElementById('tab-tracker'),
-  manage: document.getElementById('tab-manage'),
-  journal: document.getElementById('tab-journal'),
-  history: document.getElementById('tab-history'),
-  accounts: document.getElementById('tab-accounts'),
-  calendar: document.getElementById('tab-calendar'),
-  psychology: document.getElementById('tab-psychology'),
-  goals: document.getElementById('tab-goals'),
-  stats: document.getElementById('tab-stats'),
-  soon: document.getElementById('tab-soon'),
+  dashboard: document.getElementById('tab-dashboard'),
+  records: document.getElementById('tab-records'),
 };
 
+function loadDashboardPage() {
+  loadTracker();
+  loadAccounts();
+  loadCalendar();
+  loadPsychology();
+  loadGoals();
+  loadStats();
+}
+
+function loadRecordsPage() {
+  loadTrades();
+  loadAlertHistory();
+}
+
 const tabLoaders = {
-  briefing: loadBriefing,
-  tracker: loadTracker,
-  accounts: loadAccounts,
-  calendar: loadCalendar,
-  psychology: loadPsychology,
-  goals: loadGoals,
-  stats: loadStats,
+  dashboard: loadDashboardPage,
+  records: loadRecordsPage,
 };
 
 tabs.forEach(tab => {
@@ -501,7 +501,6 @@ async function loadRiskStatus() {
     <div class="stat-card"><span class="stat-label">Risked today</span><span class="stat-value" style="color:${dailyOver ? 'var(--red)' : 'var(--text)'}">${fmtMoney(s.risked_today)}${s.daily_cap ? ' / ' + fmtMoney(s.daily_cap) : ''}</span></div>
     <div class="stat-card"><span class="stat-label">Risked this week</span><span class="stat-value" style="color:${weeklyOver ? 'var(--red)' : 'var(--text)'}">${fmtMoney(s.risked_week)}${s.weekly_cap ? ' / ' + fmtMoney(s.weekly_cap) : ''}</span></div>
   `;
-  renderBriefingRisk(s, dailyOver, weeklyOver);
 }
 loadRiskCapsIntoInputs();
 
@@ -703,67 +702,8 @@ async function loadStats() {
 }
 
 // ============================================================
-// Pre-Market Briefing (composite view)
-// ============================================================
-function renderBriefingRisk(s, dailyOver, weeklyOver) {
-  const el = document.getElementById('briefing-risk');
-  if (!el) return;
-  el.innerHTML = `
-    <div class="stat-card"><span class="stat-label">Risked today</span><span class="stat-value" style="color:${dailyOver ? 'var(--red)' : 'var(--text)'}">${fmtMoney(s.risked_today)}${s.daily_cap ? ' / ' + fmtMoney(s.daily_cap) : ''}</span></div>
-    <div class="stat-card"><span class="stat-label">Risked this week</span><span class="stat-value" style="color:${weeklyOver ? 'var(--red)' : 'var(--text)'}">${fmtMoney(s.risked_week)}${s.weekly_cap ? ' / ' + fmtMoney(s.weekly_cap) : ''}</span></div>
-  `;
-}
-
-async function loadBriefing() {
-  // Today's events
-  const calRes = await fetch('/api/calendar');
-  const events = await calRes.json();
-  const today = todayStr();
-  const todaysEvents = events.filter(e => e.event_date === today);
-  const eventsEl = document.getElementById('briefing-events');
-  if (!todaysEvents.length) {
-    eventsEl.innerHTML = '<div class="empty-state">No events logged for today — add them in the Calendar tab.</div>';
-  } else {
-    eventsEl.innerHTML = todaysEvents.map(ev => `
-      <div class="mini-list-row impact-${ev.impact}">
-        <span>${escapeHtml(ev.event_time || '')} — ${escapeHtml(ev.title)}</span>
-        <span>${ev.impact}</span>
-      </div>
-    `).join('');
-  }
-
-  // Live setups
-  const { latest } = await fetchLatestAlertsBySymbol();
-  renderTrackerGrid(document.getElementById('briefing-tracker'), latest);
-
-  // Account health
-  const accRes = await fetch('/api/accounts');
-  accountsCache = await accRes.json();
-  const accEl = document.getElementById('briefing-accounts');
-  if (!accountsCache.length) {
-    accEl.innerHTML = '<div class="empty-state">No accounts added yet — add one in the Accounts tab.</div>';
-  } else {
-    accEl.innerHTML = accountsCache.map(a => {
-      const status = accountStatus(a);
-      return `
-        <div class="account-card status-${status}">
-          <div><span class="account-name">${escapeHtml(a.name)}</span><span class="account-firm">${escapeHtml(a.firm || '')}</span></div>
-          <div class="account-balance">${fmtMoney(a.current_balance)}</div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // Risk
-  const riskRes = await fetch('/api/risk-status');
-  const risk = await riskRes.json();
-  renderBriefingRisk(risk, risk.daily_cap && risk.risked_today >= risk.daily_cap, risk.weekly_cap && risk.risked_week >= risk.weekly_cap);
-}
-
-// ============================================================
 // Init
 // ============================================================
-loadBriefing();
-loadTrades();
-loadAlertHistory();
+loadDashboardPage();
+loadRecordsPage();
 setInterval(loadTracker, 30000);
