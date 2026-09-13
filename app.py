@@ -18,6 +18,7 @@ from flask import Flask, request, jsonify, render_template
 
 import db
 import tradovate_import
+import forexfactory_sync
 
 app = Flask(__name__)
 db.init_db()
@@ -321,6 +322,39 @@ def delete_calendar_event(event_id):
     conn.commit()
     conn.close()
     return jsonify({"status": "deleted"})
+
+
+@app.route("/api/calendar/sync", methods=["POST"])
+def sync_calendar():
+    events, error = forexfactory_sync.sync_forexfactory_calendar(days_ahead=7)
+    if error and not events:
+        return jsonify({"synced": 0, "skipped_duplicates": 0, "error": error}), 200
+
+    conn = db.get_conn()
+    synced = 0
+    skipped = 0
+    for ev in events:
+        values = {f: ev.get(f) for f in ["event_date", "event_time", "title", "impact", "notes", "source", "external_key"]}
+        try:
+            cols = ", ".join(values.keys())
+            placeholders = ", ".join(["?"] * len(values))
+            conn.execute(
+                f"INSERT INTO calendar_events (created_at, {cols}) VALUES (?, {placeholders})",
+                (db.now_iso(), *values.values()),
+            )
+            synced += 1
+        except db.sqlite3.IntegrityError:
+            skipped += 1
+    conn.commit()
+    conn.close()
+
+    db.set_setting("ff_last_sync", db.now_iso())
+    return jsonify({"synced": synced, "skipped_duplicates": skipped, "error": error}), 200
+
+
+@app.route("/api/calendar/sync-status", methods=["GET"])
+def calendar_sync_status():
+    return jsonify({"last_sync": db.get_setting("ff_last_sync")})
 
 
 # ---------------------------------------------------------------------------

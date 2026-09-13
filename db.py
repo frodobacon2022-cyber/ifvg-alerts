@@ -90,8 +90,8 @@ def init_db():
         ON trades (external_key) WHERE external_key IS NOT NULL
     """)
 
-    # Economic calendar events (manual entry for now; automated feed is a
-    # backend-phase upgrade)
+    # Economic calendar events (manual entry, plus optional sync from a
+    # Forex Factory data source)
     c.execute("""
         CREATE TABLE IF NOT EXISTS calendar_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,8 +100,21 @@ def init_db():
             title TEXT NOT NULL,
             impact TEXT NOT NULL DEFAULT 'yellow',
             notes TEXT,
-            created_at TEXT
+            created_at TEXT,
+            source TEXT DEFAULT 'manual',
+            external_key TEXT
         )
+    """)
+
+    existing_cal_cols = {row["name"] for row in c.execute("PRAGMA table_info(calendar_events)").fetchall()}
+    if "source" not in existing_cal_cols:
+        c.execute("ALTER TABLE calendar_events ADD COLUMN source TEXT DEFAULT 'manual'")
+    if "external_key" not in existing_cal_cols:
+        c.execute("ALTER TABLE calendar_events ADD COLUMN external_key TEXT")
+
+    c.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_external_key
+        ON calendar_events (external_key) WHERE external_key IS NOT NULL
     """)
 
     # Goals / milestones - tied optionally to an account
