@@ -11,9 +11,9 @@
 <body>
 
 <!-- ambient cursor-follow glow layer -->
+<div class="orb"></div>
+<div class="grain"></div>
 <div class="glow-field" id="glow-field"></div>
-<div class="grid-overlay"></div>
-<div class="scanbeam"></div>
 
 <header class="topbar">
   <div class="brand">
@@ -116,10 +116,23 @@
       <p class="panel-note">Red/orange move price fastest. Yellow shown but de-emphasized.</p>
       <button class="btn-primary" id="new-event-btn">+ Add event</button>
     </div>
+
+    <div class="date-nav">
+      <button class="date-nav-arrow" id="cal-prev-day" aria-label="Previous day">&larr;</button>
+      <div class="date-nav-current">
+        <span id="cal-date-label">Today</span>
+        <input type="date" id="cal-date-picker">
+      </div>
+      <button class="date-nav-arrow" id="cal-next-day" aria-label="Next day">&rarr;</button>
+      <button class="btn-secondary" id="cal-today-btn">Today</button>
+      <button class="btn-secondary" id="cal-sync-btn">Sync from Forex Factory</button>
+    </div>
+    <div id="cal-sync-status" class="panel-note"></div>
+
     <div class="table-wrap">
       <table class="data-table" id="calendar-table">
-        <thead><tr><th>Date</th><th>Time</th><th>Event</th><th>Impact</th><th>Notes</th><th></th></tr></thead>
-        <tbody id="calendar-tbody"><tr><td colspan="6" class="empty-state">No events added yet.</td></tr></tbody>
+        <thead><tr><th>Time</th><th>Event</th><th>Impact</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="calendar-tbody"><tr><td colspan="5" class="empty-state">No events for this day.</td></tr></tbody>
       </table>
     </div>
 
