@@ -12,6 +12,29 @@ document.addEventListener('mousemove', (e) => {
 });
 
 // ============================================================
+// 3D tilt-on-hover for cards (event delegation so it works on
+// dynamically re-rendered content without re-attaching listeners)
+// ============================================================
+const TILT_SELECTOR = '.tracker-card, .account-card, .stat-card, .goal-card, .news-link-card, .tilt-card';
+let tiltRaf = null;
+document.addEventListener('mousemove', (e) => {
+  if (tiltRaf) return;
+  tiltRaf = requestAnimationFrame(() => {
+    const hovered = e.target.closest ? e.target.closest(TILT_SELECTOR) : null;
+    document.querySelectorAll(TILT_SELECTOR).forEach(card => {
+      if (card !== hovered) card.style.transform = '';
+    });
+    if (hovered) {
+      const r = hovered.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      hovered.style.transform = `perspective(600px) rotateX(${-y * 6}deg) rotateY(${x * 6}deg) translateY(-2px)`;
+    }
+    tiltRaf = null;
+  });
+});
+
+// ============================================================
 // Tabs
 // ============================================================
 const tabs = document.querySelectorAll('.tab');
