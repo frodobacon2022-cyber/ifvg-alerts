@@ -529,22 +529,53 @@ function renderNewsLinks() {
 renderNewsLinks();
 
 let calendarCache = [];
+let calendarSelectedDate = todayStr();
+
+function parseDateStr(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+function formatDateStr(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+function shiftDate(dateStr, days) {
+  const d = parseDateStr(dateStr);
+  d.setUTCDate(d.getUTCDate() + days);
+  return formatDateStr(d);
+}
+
+function formatDisplayDate(dateStr) {
+  if (dateStr === todayStr()) return 'Today';
+  const d = parseDateStr(dateStr);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
+function updateDateNavUI() {
+  document.getElementById('cal-date-label').textContent = formatDisplayDate(calendarSelectedDate);
+  document.getElementById('cal-date-picker').value = calendarSelectedDate;
+}
 
 async function loadCalendar() {
   const res = await fetch('/api/calendar');
   calendarCache = await res.json();
+  updateDateNavUI();
   renderCalendarTable();
 }
 
 function renderCalendarTable() {
   const tbody = document.getElementById('calendar-tbody');
-  if (!calendarCache.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No events added yet.</td></tr>';
+  const dayEvents = calendarCache
+    .filter(ev => ev.event_date === calendarSelectedDate)
+    .sort((a, b) => (a.event_time || '').localeCompare(b.event_time || ''));
+
+  if (!dayEvents.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No events for this day.</td></tr>';
     return;
   }
-  tbody.innerHTML = calendarCache.map(ev => `
+  tbody.innerHTML = dayEvents.map(ev => `
     <tr>
-      <td>${escapeHtml(ev.event_date)}</td>
       <td>${escapeHtml(ev.event_time || '')}</td>
       <td>${escapeHtml(ev.title)}</td>
       <td class="impact-${ev.impact}">${ev.impact}</td>
@@ -560,8 +591,69 @@ function renderCalendarTable() {
   });
 }
 
+document.getElementById('cal-prev-day').addEventListener('click', () => {
+  calendarSelectedDate = shiftDate(calendarSelectedDate, -1);
+  updateDateNavUI();
+  renderCalendarTable();
+});
+
+document.getElementById('cal-next-day').addEventListener('click', () => {
+  calendarSelectedDate = shiftDate(calendarSelectedDate, 1);
+  updateDateNavUI();
+  renderCalendarTable();
+});
+
+document.getElementById('cal-today-btn').addEventListener('click', () => {
+  calendarSelectedDate = todayStr();
+  updateDateNavUI();
+  renderCalendarTable();
+});
+
+const calDatePicker = document.getElementById('cal-date-picker');
+calDatePicker.addEventListener('change', () => {
+  if (calDatePicker.value) {
+    calendarSelectedDate = calDatePicker.value;
+    updateDateNavUI();
+    renderCalendarTable();
+  }
+});
+document.getElementById('cal-date-label').addEventListener('click', () => {
+  if (calDatePicker.showPicker) calDatePicker.showPicker();
+  else calDatePicker.focus();
+});
+
+async function loadSyncStatus() {
+  const res = await fetch('/api/calendar/sync-status');
+  const s = await res.json();
+  const el = document.getElementById('cal-sync-status');
+  el.textContent = s.last_sync ? `Last synced ${timeAgo(s.last_sync)}` : 'Never synced from Forex Factory yet.';
+}
+loadSyncStatus();
+
+document.getElementById('cal-sync-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('cal-sync-status');
+  statusEl.textContent = 'Syncing…';
+  try {
+    const res = await fetch('/api/calendar/sync', { method: 'POST' });
+    const result = await res.json();
+    if (result.error) {
+      statusEl.textContent = result.error;
+    } else {
+      statusEl.textContent = `Synced ${result.synced} new event(s), skipped ${result.skipped_duplicates} already-synced.`;
+      loadCalendar();
+      loadSyncStatus();
+    }
+  } catch (err) {
+    statusEl.textContent = 'Sync failed — check the connection and try again.';
+  }
+});
+
 const eventModal = document.getElementById('event-modal');
-document.getElementById('new-event-btn').addEventListener('click', () => eventModal.classList.remove('hidden'));
+document.getElementById('new-event-btn').addEventListener('click', () => {
+  eventModal.classList.remove('hidden');
+  const dateField = document.querySelector('#event-form [name="event_date"]');
+  if (dateField && !dateField.value) dateField.value = calendarSelectedDate;
+});
 document.getElementById('event-modal-close').addEventListener('click', () => eventModal.classList.add('hidden'));
 document.getElementById('cancel-event').addEventListener('click', () => eventModal.classList.add('hidden'));
 
