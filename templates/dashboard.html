@@ -27,43 +27,16 @@
 </header>
 
 <nav class="tabs" id="tabs">
-  <button class="tab active" data-tab="briefing">Briefing</button>
-  <button class="tab" data-tab="tracker">Setup Tracker</button>
-  <button class="tab" data-tab="manage">Trade Mgmt</button>
-  <button class="tab" data-tab="journal">Journal</button>
-  <button class="tab" data-tab="history">Alerts</button>
-  <button class="tab" data-tab="accounts">Accounts</button>
-  <button class="tab" data-tab="calendar">Calendar / News</button>
-  <button class="tab" data-tab="psychology">Psychology</button>
-  <button class="tab" data-tab="goals">Goals</button>
-  <button class="tab" data-tab="stats">Stats</button>
-  <button class="tab" data-tab="soon">Correlation / Backtest</button>
+  <button class="tab active" data-tab="dashboard">Dashboard</button>
+  <button class="tab" data-tab="records">Records</button>
 </nav>
 
 <main>
 
-  <!-- PRE-MARKET BRIEFING -->
-  <section class="panel glow-card" id="tab-briefing">
-    <div class="panel-head">
-      <h2>Pre-Market Briefing</h2>
-      <p class="panel-note">Everything to check before the session starts, in one place.</p>
-    </div>
-
-    <h3 class="sub-head">Today's high-impact events</h3>
-    <div id="briefing-events" class="mini-list"><div class="empty-state">No events logged for today yet — add them in the Calendar tab.</div></div>
-
-    <h3 class="sub-head">Live setups</h3>
-    <div id="briefing-tracker" class="tracker-grid"><div class="empty-state">No alerts yet.</div></div>
-
-    <h3 class="sub-head">Account health</h3>
-    <div id="briefing-accounts" class="account-grid"><div class="empty-state">No accounts added yet — add one in the Accounts tab.</div></div>
-
-    <h3 class="sub-head">Risk used</h3>
-    <div id="briefing-risk" class="stat-row"></div>
-  </section>
+  <div class="tab-page" id="tab-dashboard">
 
   <!-- SETUP TRACKER -->
-  <section class="panel hidden glow-card" id="tab-tracker">
+  <section class="panel glow-card" id="section-tracker">
     <div class="panel-head">
       <h2>Live Setup Tracker</h2>
       <p class="panel-note">Latest condition state per symbol / timeframe, from incoming alerts.</p>
@@ -74,7 +47,7 @@
   </section>
 
   <!-- ACTIVE TRADE MANAGEMENT -->
-  <section class="panel hidden glow-card" id="tab-manage">
+  <section class="panel glow-card" id="section-manage">
     <div class="panel-head">
       <h2>Active Trade Management</h2>
       <p class="panel-note">Confirm your conditions, then get stop, target, breakeven, and position size.</p>
@@ -115,8 +88,116 @@
     <div class="empty-state" id="calc-gate-msg">Check all 5 conditions above to unlock the sizing calculator.</div>
   </section>
 
+  <!-- ACCOUNTS -->
+  <section class="panel glow-card" id="section-accounts">
+    <div class="panel-head">
+      <h2>Multi-Account Overview</h2>
+      <p class="panel-note">Every account, status, and how close it is to target or floor.</p>
+      <button class="btn-primary" id="new-account-btn">+ Add account</button>
+    </div>
+    <div id="accounts-totals" class="stat-row"></div>
+    <div id="accounts-grid" class="account-grid">
+      <div class="empty-state">No accounts added yet.</div>
+    </div>
+
+    <h3 class="sub-head">Risk caps</h3>
+    <div class="calc-grid">
+      <label>Daily risk cap ($) <input type="number" step="any" id="daily-risk-cap"></label>
+      <label>Weekly risk cap ($) <input type="number" step="any" id="weekly-risk-cap"></label>
+      <label class="save-cap-label"><button class="btn-secondary" id="save-caps-btn">Save caps</button></label>
+    </div>
+    <div id="risk-status" class="stat-row"></div>
+  </section>
+
+  <!-- CALENDAR / NEWS -->
+  <section class="panel glow-card" id="section-calendar">
+    <div class="panel-head">
+      <h2>Economic Calendar &amp; News</h2>
+      <p class="panel-note">Red/orange move price fastest. Yellow shown but de-emphasized.</p>
+      <button class="btn-primary" id="new-event-btn">+ Add event</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="calendar-table">
+        <thead><tr><th>Date</th><th>Time</th><th>Event</th><th>Impact</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="calendar-tbody"><tr><td colspan="6" class="empty-state">No events added yet.</td></tr></tbody>
+      </table>
+    </div>
+
+    <h3 class="sub-head">Fast-breaking news sources</h3>
+    <div class="news-links" id="news-links"></div>
+  </section>
+
+  <!-- PSYCHOLOGY -->
+  <section class="panel glow-card" id="section-psychology">
+    <div class="panel-head">
+      <h2>Psychology &amp; Rule Compliance</h2>
+      <p class="panel-note">Are your losses coming from bad setups, or from breaking your own rules?</p>
+    </div>
+    <div id="psych-stats" class="stat-row"></div>
+    <h3 class="sub-head">Full compliance (5/5 conditions) vs not</h3>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th></th><th>Trades</th><th>Win rate</th></tr></thead>
+        <tbody id="psych-compliance-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- GOALS -->
+  <section class="panel glow-card" id="section-goals">
+    <div class="panel-head">
+      <h2>Goals &amp; Milestones</h2>
+      <p class="panel-note">Track progress toward each account's target, or your own income goals.</p>
+      <button class="btn-primary" id="new-goal-btn">+ Add goal</button>
+    </div>
+    <div id="goals-list" class="goals-list"><div class="empty-state">No goals set yet.</div></div>
+  </section>
+
+  <!-- STATS -->
+  <section class="panel glow-card" id="section-stats">
+    <div class="panel-head">
+      <h2>Performance</h2>
+    </div>
+    <div class="stat-row" id="stat-summary">
+      <div class="stat-card"><span class="stat-label">Total trades</span><span class="stat-value" id="stat-total">—</span></div>
+      <div class="stat-card"><span class="stat-label">Win rate</span><span class="stat-value" id="stat-winrate">—</span></div>
+      <div class="stat-card"><span class="stat-label">Total P/L</span><span class="stat-value" id="stat-pnl">—</span></div>
+    </div>
+    <h3 class="sub-head">By session</h3>
+    <div class="table-wrap">
+      <table class="data-table" id="session-table">
+        <thead><tr><th>Session</th><th>Wins</th><th>Losses</th><th>Win rate</th><th>P/L</th></tr></thead>
+        <tbody id="session-tbody"><tr><td colspan="5" class="empty-state">No data yet.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- COMING SOON: CORRELATION + BACKTEST -->
+  <section class="panel glow-card" id="section-soon">
+    <div class="panel-head">
+      <h2>Correlation Matrix &amp; Backtesting</h2>
+      <p class="panel-note">These need a live market data feed and a historical data source — that's backend-phase work.</p>
+    </div>
+    <div class="soon-block">
+      <div class="soon-card">
+        <h3>Correlation Matrix</h3>
+        <p>A live panel showing how correlated pairs (e.g. NQ/ES) are moving relative to each other, to spot SMT divergence at a glance instead of flipping between charts.</p>
+        <span class="soon-tag">Needs a live price feed</span>
+      </div>
+      <div class="soon-card">
+        <h3>AI Backtesting</h3>
+        <p>Run your 5-condition IFVG strategy against historical data, broken down by session and timeframe, with full stats.</p>
+        <span class="soon-tag">Needs historical data + a simulation engine</span>
+      </div>
+    </div>
+  </section>
+
+  </div>
+
+  <div class="tab-page hidden" id="tab-records">
+
   <!-- TRADE JOURNAL -->
-  <section class="panel hidden glow-card" id="tab-journal">
+  <section class="panel glow-card" id="section-journal">
     <div class="panel-head">
       <h2>Trade Journal</h2>
       <p class="panel-note">Log every trade taken, and which conditions were present.</p>
@@ -142,7 +223,7 @@
   </section>
 
   <!-- ALERT HISTORY -->
-  <section class="panel hidden glow-card" id="tab-history">
+  <section class="panel glow-card" id="section-history">
     <div class="panel-head">
       <h2>Alert History</h2>
       <p class="panel-note">Every alert the system has sent. Mark whether you took it.</p>
@@ -161,109 +242,7 @@
     </div>
   </section>
 
-  <!-- ACCOUNTS -->
-  <section class="panel hidden glow-card" id="tab-accounts">
-    <div class="panel-head">
-      <h2>Multi-Account Overview</h2>
-      <p class="panel-note">Every account, status, and how close it is to target or floor.</p>
-      <button class="btn-primary" id="new-account-btn">+ Add account</button>
-    </div>
-    <div id="accounts-totals" class="stat-row"></div>
-    <div id="accounts-grid" class="account-grid">
-      <div class="empty-state">No accounts added yet.</div>
-    </div>
-
-    <h3 class="sub-head">Risk caps</h3>
-    <div class="calc-grid">
-      <label>Daily risk cap ($) <input type="number" step="any" id="daily-risk-cap"></label>
-      <label>Weekly risk cap ($) <input type="number" step="any" id="weekly-risk-cap"></label>
-      <label class="save-cap-label"><button class="btn-secondary" id="save-caps-btn">Save caps</button></label>
-    </div>
-    <div id="risk-status" class="stat-row"></div>
-  </section>
-
-  <!-- CALENDAR / NEWS -->
-  <section class="panel hidden glow-card" id="tab-calendar">
-    <div class="panel-head">
-      <h2>Economic Calendar &amp; News</h2>
-      <p class="panel-note">Red/orange move price fastest. Yellow shown but de-emphasized.</p>
-      <button class="btn-primary" id="new-event-btn">+ Add event</button>
-    </div>
-    <div class="table-wrap">
-      <table class="data-table" id="calendar-table">
-        <thead><tr><th>Date</th><th>Time</th><th>Event</th><th>Impact</th><th>Notes</th><th></th></tr></thead>
-        <tbody id="calendar-tbody"><tr><td colspan="6" class="empty-state">No events added yet.</td></tr></tbody>
-      </table>
-    </div>
-
-    <h3 class="sub-head">Fast-breaking news sources</h3>
-    <div class="news-links" id="news-links"></div>
-  </section>
-
-  <!-- PSYCHOLOGY -->
-  <section class="panel hidden glow-card" id="tab-psychology">
-    <div class="panel-head">
-      <h2>Psychology &amp; Rule Compliance</h2>
-      <p class="panel-note">Are your losses coming from bad setups, or from breaking your own rules?</p>
-    </div>
-    <div id="psych-stats" class="stat-row"></div>
-    <h3 class="sub-head">Full compliance (5/5 conditions) vs not</h3>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th></th><th>Trades</th><th>Win rate</th></tr></thead>
-        <tbody id="psych-compliance-tbody"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- GOALS -->
-  <section class="panel hidden glow-card" id="tab-goals">
-    <div class="panel-head">
-      <h2>Goals &amp; Milestones</h2>
-      <p class="panel-note">Track progress toward each account's target, or your own income goals.</p>
-      <button class="btn-primary" id="new-goal-btn">+ Add goal</button>
-    </div>
-    <div id="goals-list" class="goals-list"><div class="empty-state">No goals set yet.</div></div>
-  </section>
-
-  <!-- STATS -->
-  <section class="panel hidden glow-card" id="tab-stats">
-    <div class="panel-head">
-      <h2>Performance</h2>
-    </div>
-    <div class="stat-row" id="stat-summary">
-      <div class="stat-card"><span class="stat-label">Total trades</span><span class="stat-value" id="stat-total">—</span></div>
-      <div class="stat-card"><span class="stat-label">Win rate</span><span class="stat-value" id="stat-winrate">—</span></div>
-      <div class="stat-card"><span class="stat-label">Total P/L</span><span class="stat-value" id="stat-pnl">—</span></div>
-    </div>
-    <h3 class="sub-head">By session</h3>
-    <div class="table-wrap">
-      <table class="data-table" id="session-table">
-        <thead><tr><th>Session</th><th>Wins</th><th>Losses</th><th>Win rate</th><th>P/L</th></tr></thead>
-        <tbody id="session-tbody"><tr><td colspan="5" class="empty-state">No data yet.</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- COMING SOON: CORRELATION + BACKTEST -->
-  <section class="panel hidden glow-card" id="tab-soon">
-    <div class="panel-head">
-      <h2>Correlation Matrix &amp; Backtesting</h2>
-      <p class="panel-note">These need a live market data feed and a historical data source — that's backend-phase work.</p>
-    </div>
-    <div class="soon-block">
-      <div class="soon-card">
-        <h3>Correlation Matrix</h3>
-        <p>A live panel showing how correlated pairs (e.g. NQ/ES) are moving relative to each other, to spot SMT divergence at a glance instead of flipping between charts.</p>
-        <span class="soon-tag">Needs a live price feed</span>
-      </div>
-      <div class="soon-card">
-        <h3>AI Backtesting</h3>
-        <p>Run your 5-condition IFVG strategy against historical data, broken down by session and timeframe, with full stats.</p>
-        <span class="soon-tag">Needs historical data + a simulation engine</span>
-      </div>
-    </div>
-  </section>
+  </div>
 
 </main>
 
